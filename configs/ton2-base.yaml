@@ -1,0 +1,43 @@
+# ton2-base — ~170M params, the real base model. Trained on the high-quality
+# mixed corpus (FineWeb-EDU + Cosmopedia + math + a little TinyStories). The
+# multi-day run; total_tokens is the cross-session target reached via --resume.
+# Gated: clears G5 (300M-token sanity) + G6 (first-hour thermal) before earning
+# its days.
+name: ton2-base
+
+model:
+  vocab_size: 24000
+  d_model: 768
+  n_layers: 24
+  n_heads: 12
+  n_kv_heads: 4
+  ffn_dim: 2048
+  max_seq_len: 2048
+  rope_theta: 10000.0
+  norm_eps: 1.0e-5
+  tie_embeddings: true
+
+train:
+  micro_batch_size: 16      # starting value; OOM-aware finder backs off if needed
+  grad_accum_steps: 16      # effective batch ~= micro*accum*seq tokens
+  seq_len: 2048
+  total_tokens: 12_000_000_000
+  sanity_gate_tokens: 300_000_000   # G5: pause for loss+sample check before committing to the long haul
+  lr: 6.0e-4
+  lr_min: 6.0e-5
+  warmup_tokens: 150_000_000
+  weight_decay: 0.1
+  beta1: 0.9
+  beta2: 0.95
+  grad_clip: 1.0
+  precision: bf16
+  optimizer: adamw          # adamw_8bit to try bitsandbytes
+  checkpoint_every_tokens: 200_000_000
+
+data:
+  shard_dir: data/tokenized
+  source_weights:
+    fineweb_edu: 1.0
+    cosmopedia: 1.2
+    openwebmath: 0.8
+    tinystories: 0.2

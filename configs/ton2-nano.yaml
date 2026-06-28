@@ -1,0 +1,34 @@
+# ton2-nano — ~36M params, TinyStories proof (G4). Validates the whole stack
+# end to end and should produce coherent, simple English in ~1-2h.
+name: ton2-nano
+
+model:
+  vocab_size: 24000
+  d_model: 512
+  n_layers: 8
+  n_heads: 8
+  n_kv_heads: 4
+  ffn_dim: 1408
+  max_seq_len: 1024
+  rope_theta: 10000.0
+  norm_eps: 1.0e-5
+  tie_embeddings: true
+
+train:
+  micro_batch_size: 32      # starting value; OOM-aware finder backs off if needed
+  grad_accum_steps: 4
+  seq_len: 1024
+  total_tokens: 500_000_000
+  lr: 1.0e-3
+  lr_min: 1.0e-4
+  warmup_tokens: 10_000_000
+  weight_decay: 0.1
+  beta1: 0.9
+  beta2: 0.95
+  grad_clip: 1.0
+  precision: bf16
+  optimizer: adamw          # adamw_8bit to try bitsandbytes
+  checkpoint_every_tokens: 100_000_000
+
+data:
+  shard_dir: data/tokenized/tinystories

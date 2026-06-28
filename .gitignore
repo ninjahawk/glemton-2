@@ -27,6 +27,11 @@ logs/
 *.log
 scratch/
 
+# Generated status / scratch
+STATUS.md
+MORNING_REPORT.md
+configs/_smoke.yaml
+
 # OS
 .DS_Store
 Thumbs.db
