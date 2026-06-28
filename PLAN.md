@@ -144,7 +144,7 @@ Dense decoder-only transformer, Llama-style, **built on Glemton-1's verified `mo
 | Precision | bf16 weights + autocast | |
 
 **Milestone models (the ladder, see §12):**
-- **glemton-2-nano (~5–30M):** TinyStories-scale proof. d_model 512, L=8. Validates the whole stack in <1 day and should produce coherent toy English.
+- **glemton-2-nano (~5–30M):** TinyStories-scale proof. d_model 512, L=8. Validates the whole stack in <1 day and should produce coherent, simple English.
 - **glemton-2-base (~180M):** the real model (above).
 - **glemton-2-medium (~360M) [STRETCH]:** Glemton-1's size; only if the 180M result is strong and time/tokens allow. Reuse Glemton-1's config (d_model 1024, L24-30, GQA 16/4, FFN 2752).
 
@@ -183,7 +183,7 @@ Strategy: **maximize capability-per-token** because tokens are our scarce resour
 | **Clean dialogue/prose** (DailyDialog, Gutenberg subset, optionally scene-grouped OpenSubtitles) | PD/open | ~5% | Conversational register without dominating (Glemton-1 lesson: don't let it). |
 
 **The teacher / "distillation from Claude" question — decided (and why):**
-- You floated distilling from Claude. **Recommendation: don't use Claude (or any API) for training data.** Two honest reasons: (1) Anthropic's ToS restricts using outputs to build models — for a 200M personal toy the practical risk is ~nil, but it's needless ambiguity; (2) **the optics are better the other way** — when you apply to AI labs, "I built the entire stack and distilled my *own* local 27B teacher" is a stronger signal of capability than "I called an API." It shows you can run the data-generation side too.
+- You floated distilling from Claude. **Recommendation: don't use Claude (or any API) for training data.** The reason is *not* ToS fear (a ~170M from-scratch model isn't a "competing model" in any real sense). It's that the impressive, *ownable* part of this project is the data-generation craft itself: the prompting, curation, and filtering pipeline that manufactures exactly the data that gives ton-2 its capability and voice. Drive that with a model you run yourself and the whole loop is yours; call an API and you've outsourced the most interesting part.
 - **Use instead:** your **local Qwen3.6-27B** (already installed, offline, free, zero ToS issues) as the synthetic-data teacher, plus **openly-licensed synthetic datasets** (Cosmopedia, SmolTalk, etc.). This is *sequence-level distillation* (we learn from the teacher's *text*, since no API exposes logits anyway) — the same technique Phi/Cosmopedia/SmolLM used. Same speedup, clean story.
 
 **Data hygiene (do this — Glemton-1 had bugs here):**
@@ -269,7 +269,7 @@ This is how we de-risk and always have something to show. We can stop at any run
 | # | Milestone | Deliverable | Gate to proceed | Est. effort |
 |---|---|---|---|---|
 | **M0** | **Setup & toolchain validation** | Repo scaffolded, env (PyTorch nightly cu128/9 or WSL2) verified on the 5070, tiny train step runs clean (loss ↓, no NaN), tokenizer trains | Model does a clean 100-step run; tokenizer round-trips | 2–4 days |
-| **M1** | **Nano proof (TinyStories)** | ~5–30M model trained on TinyStories → coherent toy English; full pipeline (tok→train→sample→eval) exercised end-to-end | Generates grammatical, coherent short stories | 1–2 days |
+| **M1** | **Nano proof (TinyStories)** | ~5–30M model trained on TinyStories → coherent, simple English; full pipeline (tok→train→sample→eval) exercised end-to-end | Generates grammatical, coherent short stories | 1–2 days |
 | **M2** | **Base pretrain** | glemton-2-base (~180M) on ~10–12B high-quality tokens; base evals (ARC-e/HellaSwag/LAMBADA) at sane levels | Base coherent; beats GPT-2-124M on CORE-ish; loss curve healthy | 5–10 days GPU |
 | **M3** | **Midtrain + SFT** | Chat-formatted, instruction-following model. **This is the first "talk to it" moment.** | Empty-reply rate <5%; follows simple instructions; persona consistent | 3–5 days |
 | **M4** | **DPO** | Preference-tuned, noticeably more helpful/clean. | Qwen-judge prefers DPO over SFT >60%; no regression on evals | 2–4 days |

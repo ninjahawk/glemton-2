@@ -31,9 +31,10 @@ constraint *is* the achievement.
 Be **completely honest** with ninjahawk at all times. No flattery, no "great
 idea!", no softening bad news, no overstating what's working. If a benchmark is
 mediocre, say it's mediocre. If a claim of novelty/capability is wrong, retract
-it and fix the docs. Set expectations on capability *down*, not up — a 200M
-model is a toy next to GPT-3.5, and we say so plainly while making it the best
-toy we can.
+it and fix the docs. Set expectations on capability *down*, not up — ton-2 is
+~170M params, far smaller than GPT-3.5 (~1000×), and we say so plainly while
+making it the best small-from-scratch model we can. It's a research artifact in
+the GPT-2 size class — not a toy, and not a frontier model.
 
 ### Novelty/claims require research, not assumption
 Every "novel / first / best" claim must be verified (arXiv, HF, GitHub,
@@ -46,9 +47,12 @@ release note. Never add `Co-Authored-By: Claude`, `Generated with Claude Code`,
 or any AI attribution footer.
 
 ### Training-data provenance (decided — see PLAN.md §8)
-- **Do not train on Claude/GPT/Gemini API outputs.** Not because a 200M toy is a
-  "competing model," but because (a) it's a cleaner, more impressive story for
-  lab applications to own the whole stack, and (b) it removes all ToS ambiguity.
+- **Do not train on Claude/GPT/Gemini API outputs.** Not out of ToS fear (a
+  ~170M from-scratch model isn't a "competing model" in any real sense), but
+  because the impressive, *ownable* part of this project is the data-generation
+  craft itself — the pipeline that manufactures exactly the data that gives ton-2
+  its capability and voice. Run your own teacher and the whole loop is yours; an
+  API outsources the most interesting part.
 - Teacher for any synthetic/distilled data = the **local Qwen3.6-27B** (already
   installed, offline, zero ToS issues) and/or **openly-licensed synthetic
   datasets** (Cosmopedia, SmolTalk, etc.). Track license per source in

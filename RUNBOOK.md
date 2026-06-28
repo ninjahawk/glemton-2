@@ -57,7 +57,7 @@ G0 env build ........... GATE: torch CUDA matmul on the 5070 returns correct res
 G1 code port ........... GATE: model forward/backward runs, loss finite, 50 steps clean
 G2 tokenizer ........... GATE: 24k BPE trains; encode→decode round-trips; vocab<65535
 G3 data ................ GATE: ≥ N B tokens sharded; batch loads; no source >70% of marker tokens
-G4 nano proof .......... GATE: ~36M model on TinyStories → grammatical, coherent toy stories
+G4 nano proof .......... GATE: ~36M model on TinyStories → grammatical, coherent short stories
 G5 base sanity ......... GATE: 180M base at ~300M tokens → loss healthy (<~4.0) + samples coherent-ish
 G6 thermal-under-load .. GATE: first 60 min of base run → temps stable ≤72 °C target, never hit 78 °C soft
 --- only past G5+G6 does the base run earn its multi-day continuation ---
@@ -165,7 +165,7 @@ The nano proof (G4) runs first and completes regardless.
 
 **G4 nano** (`configs/ton2-nano.yaml`, §9): ~36M params on TinyStories,
 ~0.5 B tokens, ~1–2 h. **G4 GATE**: sample 5 story completions → grammatical,
-coherent, on-topic toy English (this validates the *entire* stack end to end).
+coherent, on-topic simple English (this validates the *entire* stack end to end).
 
 **G5 base** (`configs/ton2-base.yaml`, §9): ~180M params on the G3 corpus.
 Launch via the orchestrator (§8). **G5 GATE at ~300 M tokens**: loss healthy
