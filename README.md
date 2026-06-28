@@ -1,6 +1,6 @@
-# ton-2
+# glemton-2
 
-A small ChatGPT you can train from scratch on a single consumer GPU.
+A small model trained from scratch on a consumer GPU.
 
 This repo is a full-stack, from-scratch implementation of a small chat language
 model — custom tokenizer, pretraining, supervised finetuning, preference tuning
@@ -21,8 +21,7 @@ result hiding inside the engineering.
 
 ## Scale, honestly
 
-ton-2 is ~170M parameters — GPT-2 small/medium size class. It is not GPT-3.5
-(~175B, roughly 1000× larger) and it isn't trying to be. The whole point is what
+ton-2 is ~170M parameters — GPT-2 small/medium size class. The whole point is what
 one person can build from scratch on hardware they already own; the constraint is
 the project. Read it the way you'd read nanochat or a GPT-2 reproduction: a
 research artifact and a complete, legible pipeline, end to end.
