@@ -15,10 +15,11 @@ model:
   tie_embeddings: true
 
 train:
-  micro_batch_size: 32      # starting value; OOM-aware finder backs off if needed
-  grad_accum_steps: 4
+  micro_batch_size: 8       # logits tensor (mb*seq*vocab*4) dominates VRAM; 8 keeps it ~0.8GB, clear of the fragmentation edge on 12GB/Windows. Finder backs off further if needed.
+  grad_accum_steps: 16      # mb8 x accum16 x seq1024 = 131072 tokens/step effective batch
   seq_len: 1024
-  total_tokens: 500_000_000
+  total_tokens: 250_000_000
+  sanity_gate_tokens: 120_000_000   # dump sample stories mid-run for the G4 review
   lr: 1.0e-3
   lr_min: 1.0e-4
   warmup_tokens: 10_000_000

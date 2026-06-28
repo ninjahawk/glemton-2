@@ -23,7 +23,7 @@ $env:PYTHONPATH = "src"
 $env:PYTHONUNBUFFERED = "1"
 $env:HF_HUB_DISABLE_PROGRESS_BARS = "1"
 
-$py = ".venv\Scripts\python.exe"
+$py = Join-Path $root ".venv\Scripts\python.exe"
 $ckptDir = "checkpoints\$Name"
 $log = "logs\$Name.log"
 $sentinels = @("THERMAL_STOP", "GATE_FAIL", "DISK_LOW")
@@ -65,8 +65,12 @@ while ($true) {
     $sen = HasSentinel; if ($sen) { Log "safety sentinel [$sen] present — halting for review."; break }
     $attempt++
     $latest = Get-ChildItem (Join-Path $ckptDir "step_*.pt") -ErrorAction SilentlyContinue | Sort-Object LastWriteTime | Select-Object -Last 1
-    if ($latest) { Log "attempt $attempt — resume $($latest.Name)"; & $py -m ton2.train $Config --resume $latest.FullName 2>&1 | Tee-Object -FilePath $log -Append }
-    else { Log "attempt $attempt — fresh start"; & $py -m ton2.train $Config 2>&1 | Tee-Object -FilePath $log -Append }
+    # Redirect ALL python streams to the log file (*>>). Detached processes have
+    # no valid console handle, so piping python's stdout (e.g. via Tee) makes it
+    # exit instantly; a file handle is always valid. Native command as a bare
+    # statement also keeps $LASTEXITCODE correct (a trailing cmdlet would blank it).
+    if ($latest) { Log "attempt $attempt — resume $($latest.Name)"; & $py -m ton2.train $Config --resume $latest.FullName *>> $log }
+    else { Log "attempt $attempt — fresh start"; & $py -m ton2.train $Config *>> $log }
     Log "train exited (code $LASTEXITCODE)"
     if (Test-Path (Join-Path $ckptDir "final.pt")) { break }
     $sen = HasSentinel; if ($sen) { Log "safety sentinel [$sen] — halting."; break }

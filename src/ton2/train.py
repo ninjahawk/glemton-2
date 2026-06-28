@@ -23,6 +23,9 @@ import threading
 import time
 from pathlib import Path
 
+# Reduce CUDA allocator fragmentation on a tight 12GB card (must be set before torch).
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+
 import torch
 import yaml
 
@@ -130,24 +133,40 @@ def lr_at(tok, warmup, total, lr, lr_min):
 
 
 def find_micro_batch(model, seq_len, start_mb, device):
+    """Largest micro-batch that survives 2 FULL training steps (fwd+bwd+opt.step),
+    so optimizer state and steady-state memory are accounted for — not just a single
+    forward (which under-counts and OOMs later). Restores pristine weights after, since
+    the probe steps perturb them."""
+    snapshot = {k: v.detach().to("cpu").clone() for k, v in model.state_dict().items()}
     mb = max(1, start_mb)
+    found = 1
     while mb >= 1:
+        opt = None
         try:
             torch.cuda.empty_cache()
-            x = torch.randint(0, model.cfg.vocab_size, (mb, seq_len), device=device)
-            with torch.amp.autocast("cuda", dtype=torch.bfloat16):
-                _, loss = model(x, targets=x)
-            loss.backward()
-            model.zero_grad(set_to_none=True)
-            torch.cuda.empty_cache()
-            return mb
+            opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=1e-4)
+            for _ in range(2):
+                x = torch.randint(0, model.cfg.vocab_size, (mb, seq_len), device=device)
+                with torch.amp.autocast("cuda", dtype=torch.bfloat16):
+                    _, loss = model(x, targets=x)
+                loss.backward()
+                opt.step()
+                opt.zero_grad(set_to_none=True)
+            found = mb
+            break
         except torch.cuda.OutOfMemoryError:
+            if mb == 1:
+                found = 1
+                break
+            mb //= 2
+        finally:
+            del opt
             model.zero_grad(set_to_none=True)
             torch.cuda.empty_cache()
-            if mb == 1:
-                return 1
-            mb //= 2
-    return 1
+    model.load_state_dict({k: v.to(device) for k, v in snapshot.items()})
+    del snapshot
+    torch.cuda.empty_cache()
+    return found
 
 
 @torch.no_grad()
@@ -221,14 +240,6 @@ def train(config_path, resume_from=None):
         resumed_tokens, resumed_step = int(ck.get("tokens", 0)), int(ck.get("step", 0))
         print(f"[train] resumed step={resumed_step} tokens={resumed_tokens/1e6:.1f}M", flush=True)
 
-    opt = build_optimizer(model, tr["lr"], tr["weight_decay"], tr["beta1"], tr["beta2"],
-                          tr.get("optimizer", "adamw"))
-    if resume_from:
-        try:
-            opt.load_state_dict(ck["optimizer"])
-        except Exception as e:
-            print(f"[train] optimizer restore failed ({e}); fresh optimizer", flush=True)
-
     seq_len = tr["seq_len"]
     target_eff = max(1, tr["micro_batch_size"]) * max(1, tr["grad_accum_steps"]) * seq_len
     mb = find_micro_batch(model, seq_len, tr["micro_batch_size"], device)
@@ -236,6 +247,14 @@ def train(config_path, resume_from=None):
     tokens_per_step = mb * accum * seq_len
     print(f"[train] micro_batch={mb} grad_accum={accum} -> {tokens_per_step} tokens/step "
           f"(target eff {target_eff})", flush=True)
+
+    opt = build_optimizer(model, tr["lr"], tr["weight_decay"], tr["beta1"], tr["beta2"],
+                          tr.get("optimizer", "adamw"))
+    if resume_from:
+        try:
+            opt.load_state_dict(ck["optimizer"])
+        except Exception as e:
+            print(f"[train] optimizer restore failed ({e}); fresh optimizer", flush=True)
 
     loader = make_dataloader(cfg["data"]["shard_dir"], seq_len=seq_len, batch_size=mb,
                              num_workers=2, source_weights=cfg["data"].get("source_weights"))
