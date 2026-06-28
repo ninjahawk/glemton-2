@@ -337,7 +337,7 @@ def train(config_path, resume_from=None):
                         samples += f"\n- PROMPT {pr!r}\n  -> {sample(model, tok, pr)!r}"
                     except Exception as e:
                         samples += f"\n- sample error: {e!r}"
-            ok = math.isfinite(accum_loss) and accum_loss < 4.0
+            ok = math.isfinite(accum_loss) and accum_loss < 6.0  # "not broken" check; early-training loss is normally ~4-5, so 4.0 false-fails
             write_status(name, tokens, total, step, accum_loss, lr_now,
                          (tokens - resumed_tokens) / max(1e-6, time.time() - t0), guard,
                          extra=f"## G5 sanity gate @ {tokens/1e6:.0f}M\nloss={accum_loss:.3f} "

@@ -18,10 +18,10 @@ model:
   tie_embeddings: true
 
 train:
-  micro_batch_size: 4       # logits tensor (mb*seq*vocab*4) dominates VRAM at seq=2048; 4 keeps it ~0.8GB. Finder backs off further if needed.
-  grad_accum_steps: 32      # mb4 x accum32 x seq2048 = 262144 tokens/step effective batch
-  seq_len: 2048
-  total_tokens: 12_000_000_000
+  micro_batch_size: 4       # mb=8 maxed VRAM to 12MB free (OOM risk at checkpoint-save); mb=4 leaves ~2-3GB headroom for stability on the 12GB card. grad_accum keeps the effective batch.
+  grad_accum_steps: 64      # mb4 x accum64 x seq1024 = 262144 tokens/step effective batch
+  seq_len: 1024              # 1024 (not 2048): FlashAttn unavailable on Blackwell/Win, so seq=2048 attention falls back to a slow O(seq^2) path. 1024 = ~4x less attention work + frees VRAM for bigger mb. Context can be extended later via RoPE.
+  total_tokens: 6_000_000_000   # first-pass target (~35 tok/param), properly annealed; extend later if desired
   sanity_gate_tokens: 300_000_000   # G5: pause for loss+sample check before committing to the long haul
   lr: 6.0e-4
   lr_min: 6.0e-5
@@ -32,7 +32,7 @@ train:
   grad_clip: 1.0
   precision: bf16
   optimizer: adamw          # adamw_8bit to try bitsandbytes
-  checkpoint_every_tokens: 200_000_000
+  checkpoint_every_tokens: 200_000_000  # ~2h/save at 26k tok/s; ~30 saves over 6B (~60GB, fits disk)
 
 data:
   shard_dir: data/tokenized
